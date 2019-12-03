@@ -1,4 +1,4 @@
-import numpy as numpy
+import numpy as np
 
 def path_instruction_to_inds(path_instruction, cur_ind):
 	if path_instruction.split('R')[0]:
