@@ -25,6 +25,13 @@ class SpaceObject:
 		for obj in self.objects_orbited:
 			obj.update_orbiting(num_to_add)
 
+	def list_parents(self):
+		if len(self.objects_orbited) > 0:
+			parent = self.objects_orbited[0]
+			parents = parent.list_parents() + [parent]
+			return parents
+		return []
+
 	def find_top(self):
 		"""Find the top of the tree"""
 		while len(self.objects_orbited) > 0:
@@ -67,6 +74,25 @@ def create_map(data):
 def get_number_of_indirect_and_direct_orbits(objects):
 	return np.sum([obj.num_orbiting for obj in objects.values()])
 
+def find_fork(obj1, obj2):
+	"""Finds the object where the `obj1` and `obj2` fork in the tree"""
+	i = 0
+	obj1_parents = obj1.list_parents()
+	obj2_parents = obj2.list_parents()
+	while obj1_parents[i] == obj2_parents[i]:
+		i += 1
+	return obj1_parents[i-1], i-1
+
+def count_transitions(obj1, obj2):
+	_, i_fork = find_fork(obj1, obj2)
+	obj1_parents = obj1.list_parents()
+	obj2_parents = obj2.list_parents()
+	return len(obj1_parents) + len(obj2_parents) - 2*i_fork - 2
+
+
 data = parse_map('input.txt')
 objects = create_map(data)
-print(get_number_of_indirect_and_direct_orbits(objects))
+
+you = objects['YOU']
+san = objects['SAN']
+print(count_transitions(you, san))
