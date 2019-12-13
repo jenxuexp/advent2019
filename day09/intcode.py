@@ -81,15 +81,6 @@ class IntcodeComputer:
     # INTERNAL MACHINERY
     def operate(self, full_opcode):
         parameters, opcode = self.parse_full_opcode(full_opcode)
-        # print("code = ", self.code[:len(self.init_code)])  #DELME
-        print("full_opcode = ", full_opcode)  #DELME
-        if opcode in [3, 4]:
-            print('-'*4)  #DELME
-            print("pointer = {0}, rbase = {1}".format(self.pointer, self.relative_base))  #DELME
-            print("opcode = {0}, parameters = {1}, func = {2}".format(opcode, parameters, self.opcode_dict[opcode]))  #DELME
-            print("output = ", self.output)  #DELME
-            print('-'*4)  #DELME
-
         opfunc = self.opcode_dict[opcode]
         return opfunc(parameters)
 
@@ -104,7 +95,7 @@ class IntcodeComputer:
             modes += [0]*(num_args - len(modes))
         return modes
 
-    def follow_pointers(self, modes, num_args, allow_last_to_follow=False):
+    def follow_pointers(self, modes, num_args, has_output=True):
         """
         modes:
             0 - absolute position
@@ -112,22 +103,25 @@ class IntcodeComputer:
             2 - relative to base
         """
         modes = self.check_modes_length(modes, num_args)
-        # print("modes = ", modes)  #DELME
-        if not allow_last_to_follow:
-            if modes[-1] != 2:  # All good if relative base pointer... O.o
-                modes[-1] = 1 # Don't let the last argument follow pointers
         args = self.code[self.pointer+1:self.pointer+1+num_args] + 0
-        # print("args pre-follow = ", args)  #DELME
-        for i in range(len(args)):
+        for i in range(len(args) - 1):
             arg = args[i]
             mode = modes[i]
             if mode == 0:  # Absolute pointer
                 args[i] = self.code[arg] + 0
             elif mode == 2:  # Relative_base pointer
-                arg += self.relative_base
-                args[i] = self.code[arg] if allow_last_to_follow else arg
-                # args[i] = self.code[self.relative_base + arg] + 0
-        # print("args post-follow = ", args)  #DELME
+                args[i] = self.code[self.relative_base + arg] + 0
+        
+        last_arg = args[-1] + 0
+        last_mode = modes[-1] + 0
+        if has_output:
+            if last_mode == 2:
+                args[-1] += self.relative_base
+        else:
+            if last_mode == 0:  # Absolute pointer
+                args[-1] = self.code[last_arg] + 0
+            elif last_mode == 2:  # Relative_base pointer
+                args[-1] = self.code[self.relative_base + last_arg] + 0
         return args
 
     # OPCODE FUNCTIONS
@@ -148,38 +142,23 @@ class IntcodeComputer:
         return 4
 
     def input(self, modes=[]):  # Opcode 3
-        modes = self.check_modes_length(modes, 1)
-        # print('-'*4)  #DELME
-        print("code = ", self.code[:4])  #DELME
-        # print("full_opcode = ", full_opcode)  #DELME
-        # print("pointer = {0}, rbase = {1}".format(self.pointer, self.relative_base))  #DELME
-        # print("opcode = {0}, parameters = {1}, func = {2}".format(opcode, parameters, self.opcode_dict[opcode]))  #DELME
-        # print("output = ", self.output)  #DELME
-
-        print("input = ", self.input, True)  #DELME
-        # args = self.follow_pointers(modes, 1)
-        arg1 = self.code[self.pointer+1] 
-        print("args pre-follow = ", arg1)  #DELME
-        if modes[0] == 2:
-            arg1 += self.relative_base
-        print("args post-follow = ", arg1)  #DELME
+        args = self.follow_pointers(modes, 1)
+        arg1 = args[0]
         self.code[arg1] = self.input.pop(0)
-        print("code = ", self.code[:4])  #DELME
         return 2
 
     def output(self, modes=[]):  # Opcode 4
-        args = self.follow_pointers(modes, 1, True)
+        args = self.follow_pointers(modes, 1, False)
         arg1 = args[0]
 
         self.output.append(arg1)
-        # print("new_output = ", self.output)  #DELME
 
         if self.allow_pausing:
             self.unpaused_flag = False
         return 2
 
     def jump_if_true(self, modes=[]):  # Opcode 5
-        args = self.follow_pointers(modes, 2, True)
+        args = self.follow_pointers(modes, 2, False)
         arg1, arg2 = args
 
         if arg1:
@@ -189,7 +168,7 @@ class IntcodeComputer:
             return 3
 
     def jump_if_false(self, modes=[]):  # Opcode 6
-        args = self.follow_pointers(modes, 2, True)
+        args = self.follow_pointers(modes, 2, False)
         arg1, arg2 = args
 
         if not arg1:
@@ -213,7 +192,7 @@ class IntcodeComputer:
         return 4
 
     def shift(self, modes=[]):  # Opcode 9
-        args = self.follow_pointers(modes, 1, True)
+        args = self.follow_pointers(modes, 1, False)
         arg1, = args
         self.relative_base += arg1
         return 2
