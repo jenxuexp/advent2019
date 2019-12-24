@@ -95,6 +95,16 @@ for fname in ['input_test3.txt', 'input_test4.txt', 'input_test5.txt', 'input.tx
 	print("max fuel = ", max_fuel, compute_fuel(max_fuel))
 	print('-'*20)
 
+	fuel = min_fuel - 1000
+	total_ore, stockpile = compute_ingredients('FUEL', recipes, num_target=fuel)
+	while total_ore < trillion:
+		fuel += 1
+		total_ore, stockpile = compute_ingredients('FUEL', recipes, stockpile, num_target=fuel)
+	fuel -= 1
+	print("fuel with stockpiling 1000 = ", fuel)
+	print('='*30)
+
+
 
 	# stockpile = None
 	# for _ in range(1000):
